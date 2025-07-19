@@ -6,8 +6,7 @@ on:
       - inference_branch
 
 jobs:
-  test:
-    name: Run Unit Tests
+  Run-Unit-Tests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -16,20 +15,20 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: '3.10'
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install pytest
+        run: pip install -r requirements.txt
+
+      - name: Add current directory to PYTHONPATH
+        run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
       - name: Run tests
         run: pytest tests/
 
-  train:
-    name: Train Model
+  Train-Model:
     runs-on: ubuntu-latest
-    needs: test
+    needs: Run-Unit-Tests
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -37,25 +36,23 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: '3.10'
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Run training script
         run: python src/train.py
 
-      - name: Upload model artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload trained model artifact
+        uses: actions/upload-artifact@v3
         with:
           name: model-artifact
           path: model_train.pkl
 
-  inference:
-    name: Run Inference
+  Run-Inference:
     runs-on: ubuntu-latest
-    needs: train
+    needs: Train-Model
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -63,16 +60,16 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: '3.10'
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Download model artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: model-artifact
+          path: .
 
       - name: Run inference script
         run: python src/inference.py
