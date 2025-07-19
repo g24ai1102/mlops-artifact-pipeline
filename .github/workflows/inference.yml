@@ -1,4 +1,4 @@
-name: Inference
+name: Inference Pipeline
 
 on:
   push:
@@ -6,24 +6,73 @@ on:
       - inference_branch
 
 jobs:
-  inference:
+  test:
+    name: Run Unit Tests
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
 
-    - name: Run inference script
-      run: |
-        export PYTHONPATH=$PYTHONPATH:$(pwd)
-        python src/inference.py
+      - name: Run tests
+        run: pytest tests/
+
+  train:
+    name: Train Model
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run training script
+        run: python src/train.py
+
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-artifact
+          path: model_train.pkl
+
+  inference:
+    name: Run Inference
+    runs-on: ubuntu-latest
+    needs: train
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Download model artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: model-artifact
+
+      - name: Run inference script
+        run: python src/inference.py
